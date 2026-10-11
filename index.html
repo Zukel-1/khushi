@@ -51,6 +51,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:#fff;overflow:hidden;f
 @keyframes draw{0%{opacity:1;stroke-dashoffset:1400;fill-opacity:0}55%{stroke-dashoffset:0;fill-opacity:0}72%{fill-opacity:1}86%{opacity:1}100%{opacity:0;stroke-dashoffset:0;fill-opacity:1}}
 .k{font-size:clamp(9px,min(3.1vw,3.4vh),15px);line-height:1.9;color:var(--gold);opacity:0;transform:translateY(12px);transition:opacity 1s,transform 1s;max-width:560px;padding:0 12px}
 .k.in{opacity:1;transform:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (orientation:landscape) and (max-height:500px){.ov{padding:8px;gap:10px}#title h1{font-size:min(44px,9vh)}}
 #timer{font-size:clamp(30px,min(14vw,15vh),88px);color:#ff4f6d;text-shadow:4px 4px 0 #400,0 0 24px #ff4f6d;margin-top:14px;line-height:1.2}
 </style>
 </head>
@@ -59,8 +61,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:#fff;overflow:hidden;f
   <div id="stage"><canvas id="c"></canvas></div>
   <div id="pad">
     <div class="grp">
-      <button class="b dir" data-k="left">&#9664;</button>
-      <button class="b dir" data-k="right">&#9654;</button>
+      <button class="b dir" data-k="left">&#9664;&#xFE0E;</button>
+      <button class="b dir" data-k="right">&#9654;&#xFE0E;</button>
     </div>
     <div class="grp">
       <button class="b atk" data-k="punch">PUNCH</button>
@@ -74,7 +76,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:#fff;overflow:hidden;f
   <div class="vs" id="vsline"></div>
   <h1>BIRTHDAY<br>KOMBAT</h1>
   <button class="big" id="start">START GAME</button>
-  <div class="hint">&#9664; &#9654; move &middot; PUNCH &middot; KICK<br>AIR TICKLE = special move<br>(keyboard: A D &middot; J K L)</div>
+  <div class="hint">&#9664;&#xFE0E; &#9654;&#xFE0E; move &middot; PUNCH &middot; KICK<br>AIR TICKLE = special move<br>(keyboard: A D &middot; J K L)</div>
 </div>
 
 <div id="revive" class="ov hide">
@@ -87,7 +89,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:#fff;overflow:hidden;f
   <div id="e1"></div>
   <div id="e2" class="hide">
     <div id="hb">Happy Birthday</div>
-    <svg id="names" viewBox="0 0 640 130"><text id="nm" x="320" y="96" text-anchor="middle"></text></svg>
+    <svg id="names" viewBox="0 0 640 130"><text id="nm" x="320" y="90" text-anchor="middle"></text></svg>
     <div id="k1" class="k"></div>
     <div id="k2" class="k"></div>
     <div id="timer" class="k"></div>
@@ -128,11 +130,15 @@ const g=off.getContext('2d');
 $('#vsline').innerHTML=CFG.herName+' <b>VS</b> '+CFG.hisName;
 $('#activate').textContent=CFG.activateText;
 $('#k1').textContent=CFG.line1;$('#k2').textContent=CFG.line2;
+{const s=CFG.timerSeconds;$('#timer').textContent=String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 document.fonts&&document.fonts.load('40px Pacifico');
 
 // ---------- audio ----------
 let AC=null;
-function audioInit(){try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+function audioInit(){try{if(navigator.audioSession)navigator.audioSession.type='playback';if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume().catch(()=>{})}catch(e){}keepAwake()}
+let WL=null;
+function keepAwake(){try{if(navigator.wakeLock&&!WL&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(l=>{WL=l;l.addEventListener('release',()=>WL=null)}).catch(()=>{})}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&AC)keepAwake()});
 function tone(f,d,type='square',v=.1,f2=0,delay=0){if(!AC)return;const t=AC.currentTime+delay,o=AC.createOscillator(),gn=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);gn.gain.setValueAtTime(v,t);gn.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(gn);gn.connect(AC.destination);o.start(t);o.stop(t+d+.02)}
 function noise(d,v=.25,lp=1500,delay=0){if(!AC)return;const t=AC.currentTime+delay,n=Math.max(1,AC.sampleRate*d|0),b=AC.createBuffer(1,n,AC.sampleRate),ch=b.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);const s=AC.createBufferSource();s.buffer=b;const fl=AC.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;const gn=AC.createGain();gn.gain.value=v;s.connect(fl);fl.connect(gn);gn.connect(AC.destination);s.start(t)}
 const SFX={
@@ -177,7 +183,7 @@ function setState(s,timeline=[]){state=s;st=0;tl=timeline.map(([t,fn])=>({t,fn})
 const say=(f,text,dur,typed=false)=>f.say={text,t:0,dur,typed};
 const setBanner=(l1,l2,c,dur)=>banner={l1,l2,c,dur,t:0};
 const big=(s,dur,c,size)=>bigT={s,dur,c,size,t:0};
-const float=(x,y,t,c)=>floats.push({x,y,t,c,l:.9});
+const float=(x,y,t,c)=>floats.push({x:clamp(x,t.length*4+2,W-t.length*4-2),y,t,c,l:.9});
 function burst(x,y,n,cols,spd=60,life=.35,size=1){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=rnd(spd*.3,spd);parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:life,m:life,c:pick(cols),s:size})}}
 function sparkUp(f,c,n){for(let i=0;i<n;i++)parts.push({x:f.x+rnd(-12,12),y:f.y-rnd(0,40),vx:rnd(-6,6),vy:rnd(-50,-20),l:rnd(.5,1.1),m:1.1,c,s:1})}
 function smoke(x,y,n){for(let i=0;i<n;i++){const a=rnd(Math.PI,2*Math.PI),s=rnd(10,60);parts.push({x:x+rnd(-16,16),y:y+rnd(-8,6),vx:Math.cos(a)*s,vy:Math.sin(a)*s*.6,l:rnd(1.2,2.4),m:2.4,c:pick(['#ddd','#bbb','#999','#eee']),s:rnd(4,9),smoke:1})}}
@@ -264,9 +270,9 @@ function startFinisher(){
   FIN.left=P.x<V.x;const dir=()=>P.x>=V.x?1:-1;
   const t=[[0,()=>{big('TIME UP!',1,'#fff',16);V.glow='#ff3b3b';SFX.power();say(V,'My turn.',1)}],[1,()=>setBanner('VANSH ULTRA COMBO!!','','#ff4f6d',1.8)]];
   [1.5,1.68,1.86,2.04,2.22].forEach((tt,i)=>t.push([tt,()=>{V.act=i%2?'kick':'punch';V.actT=0;P.hp=Math.max(4,P.hp*.7);hurt(P,0,dir()*20,pick(['POW!','BAM!','WHAM!','OOF!']))}]));
-  t.push([2.55,()=>{V.act='kick';V.actT=0;P.hp=0;P.stun=99;P.air=true;P.vy=-150;P.vx=dir()*110;flash=.6;shake=.4;SFX.boom();
+  t.push([2.55,()=>{V.act='kick';V.actT=0;P.hp=0;P.stun=99;P.air=true;P.vy=-150;P.vx=dir()*Math.min(110,Math.max(0,dir()>0?W-26-P.x:P.x-26)/.625);flash=.6;shake=.4;SFX.boom();
     P.onLand=()=>{P.down=true;P.x=clamp(P.x,26,W-26);shake=.25;SFX.thud();burst(P.x,GY-2,10,['#c9a','#a89'],40)}}]);
-  t.push([3.4,()=>{big('K.O.',1.6,'#ff4f6d',32);SFX.ko()}]);
+  t.push([3.4,()=>{big('K.O.',1.2,'#ff4f6d',32);SFX.ko()}]);
   t.push([4.6,()=>setState('ko',[
     [0,()=>{V.glow=null;V.win=true;setBanner(CFG.hisName+' WINS','','#6fb5ff',99);say(V,'EZZZZ!',1.6);SFX.win()}],
     [1.8,()=>say(V,'GOAT hu main',1.8)],
@@ -283,7 +289,7 @@ function startRevive(){
     [2.3,()=>{P.fp='super';RV.tx=V.x-d*10;SFX.dash()}],
     [2.65,impact],
     [3.25,()=>P.fp='laugh'],
-    [3.4,()=>big('K.O.',1.5,'#ffd23f',32)],
+    [3.4,()=>big('K.O.',.8,'#ffd23f',32)],
     [4.2,()=>{setBanner(CFG.herName+' WINS','FLAWLESS VICTORY','#ffd23f',99);say(P,CFG.laugh,99,true);SFX.laugh()}],
     [7,SFX.laugh],
     [9.8,()=>fadeOn=true],
@@ -292,8 +298,8 @@ function startRevive(){
 function impact(){const d=RV.dir;flash=1.2;shake=.8;SFX.boom();V.shock=false;V.down=true;V.hp=0;V.say=null;V.x=clamp(V.x+d*6,28,W-28);RV.lx=V.x+d*4;
   smoke(V.x,GY-14,46);burst(V.x,GY-26,24,['#fff','#ffd23f','#ff8'],120,.5,2);float(V.x,GY-62,'WHAM!!','#ff4f6d')}
 function stepRevive(dt){const d=RV.dir;
-  if(st>=.9&&st<2.3){P.y=GY-40*ease(clamp((st-.9)/1.1,0,1));P.x=RV.sx}
-  else if(st>=2.3&&st<2.65){const k=clamp((st-2.3)/.35,0,1)**2;P.x=lerp(RV.sx,RV.tx,k);P.y=lerp(GY-40,GY-22,k);parts.push({x:P.x-d*rnd(4,14),y:P.y-rnd(10,34),vx:-d*30,vy:0,l:.3,m:.3,c:'#ffd23f',s:2})}
+  if(st>=.9&&st<2.3){P.y=GY-26*ease(clamp((st-.9)/1.1,0,1));P.x=RV.sx}
+  else if(st>=2.3&&st<2.65){const k=clamp((st-2.3)/.35,0,1)**2;P.x=lerp(RV.sx,RV.tx,k);P.y=lerp(GY-26,GY-22,k);parts.push({x:P.x-d*rnd(4,14),y:P.y-rnd(10,34),vx:-d*30,vy:0,l:.3,m:.3,c:'#ffd23f',s:2})}
   else if(st>=2.65){const k=clamp((st-2.65)/.6,0,1);P.x=lerp(RV.tx,RV.lx,k);P.y=lerp(GY-22,GY-8,k)-Math.sin(k*Math.PI)*16}
   if(st>.9&&Math.random()<dt*30)parts.push({x:P.x+rnd(-12,12),y:P.y-rnd(0,40),vx:rnd(-5,5),vy:rnd(-45,-20),l:rnd(.5,1),m:1,c:pick(['#ffd23f','#fff3a0','#fff']),s:1});
 }
@@ -400,7 +406,7 @@ function drawFighter(f){
 }
 function drawBubble(f){const b=f.say;if(!b)return;const s=b.typed?b.text.slice(0,Math.floor(b.t*14)):b.text;if(!s)return;
   g.font='8px "Press Start 2P",monospace';const w=Math.ceil(g.measureText(b.text).width)+8,h=14;
-  const x=clamp(Math.round(f.x-w/2),2,W-w-2),y=Math.round(f.y-62);const tx=clamp(Math.round(f.x),x+4,x+w-8);
+  const x=clamp(Math.round(f.x-w/2),2,W-w-2),y=Math.round(f.y-(f.pose==='win'?72:62));const tx=clamp(Math.round(f.x),x+4,x+w-8);
   g.fillStyle='#000';g.fillRect(x-1,y-1,w+2,h+2);g.fillRect(tx-1,y+h,6,5);g.fillStyle='#fff';g.fillRect(x,y,w,h);g.fillRect(tx,y+h,4,3);
   g.fillStyle='#111';g.textAlign='left';g.textBaseline='top';g.fillText(s,x+4,y+3)}
 function hpBar(x,y,f,side){const w=96;g.fillStyle='#000';g.fillRect(x-1,y-1,w+2,8);g.fillStyle='#4a0d1a';g.fillRect(x,y,w,6);
@@ -428,7 +434,7 @@ function render(){
     g.fillStyle='#000';g.fillRect(8,25,50,4);g.fillStyle=P.sp>=1?((P.t*6|0)%2?'#fff':'#6fe3ff'):'#2a7fa0';g.fillRect(9,26,48*P.sp|0,2);
   }
   if(banner){txt(banner.l1,W/2,36,banner.c,'center');if(banner.l2)txt(banner.l2,W/2,48,'#fff','center')}
-  if(bigT){const s=Math.round(bigT.size*(1+Math.max(0,.2-bigT.t)*3));txt(bigT.s,W/2,H/2-s/2-10,bigT.c,'center',s)}
+  if(bigT){const s=Math.min(Math.round(bigT.size*(1+Math.max(0,.2-bigT.t)*3)),Math.floor((W-8)/bigT.s.length));txt(bigT.s,W/2,H/2-s/2-10,bigT.c,'center',s)}
   if(flash>0){g.fillStyle='rgba(255,255,255,'+Math.min(1,flash)+')';g.fillRect(0,0,W,H)}
   if(fade>0){g.fillStyle='rgba(0,0,0,'+fade+')';g.fillRect(0,0,W,H)}
   dc.imageSmoothingEnabled=false;dc.drawImage(off,0,0,cv.width,cv.height);
