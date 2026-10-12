@@ -118,22 +118,23 @@ const SFX={
 const map=[];for(let r=0;r<ROWS;r++)map.push(new Array(COLS).fill(0));
 const set=(c,r,v)=>{if(c>=0&&c<COLS&&r>=0&&r<ROWS)map[r][c]=v};
 for(let c=0;c<COLS;c++){set(c,7,1);set(c,8,1)}
-const GAPS=[[58,59],[128,130],[176,177]];
+const GAPS=[[58,60],[100,105],[128,130],[168,170],[176,178]];
 for(const[a,b]of GAPS)for(let c=a;c<=b;c++){set(c,7,0);set(c,8,0)}
 [[12,2],[13,4],[14,2],[20,3],[38,2],[39,2],[40,3],[41,2],[42,2],[64,3],[76,2],[77,3],[78,4],[79,3],[80,2],[116,3],[118,3],[144,2],[145,4],[146,2],[188,3],[190,3]].forEach(([c,v])=>set(c,4,v));
-[[32,2],[52,3],[86,2],[160,2]].forEach(([c,h])=>{for(let r=GR-h;r<GR;r++){set(c,r,6);set(c+1,r,6)}});
+set(102,5,2);set(103,5,2);
+[[32,3],[52,3],[86,3],[160,2],[182,2]].forEach(([c,h])=>{for(let r=GR-h;r<GR;r++){set(c,r,6);set(c+1,r,6)}});
 for(let i=0;i<4;i++)for(let r=GR-1-i;r<GR;r++)set(122+i,r,8);
 for(let c=126;c<=127;c++)for(let r=GR-4;r<GR;r++)set(c,r,8);
 for(let i=0;i<4;i++)for(let r=GR-4+i;r<GR;r++)set(131+i,r,8);
-const CHECK=[24,56*T+6,120*T+6,172*T+6];
+const CHECK=[[24,GY],[33*T,48],[53*T,48],[87*T,48],[127*T,36],[161*T,60],[183*T,60]];
 const VX=199*T+6;
 const LOOKS=[{shirt:'#eeeeee',hair:'#111',acc:'tie',tie:'#d22'},{shirt:'#9fd3ff',hair:'#3a2a1a',acc:'tie',tie:'#223'},{shirt:'#ff8a00',hair:'#111',acc:'bindi'},{shirt:'#2a9d5c',hair:'#111',acc:'dupatta'},{shirt:'#9b59b6',hair:'#222',acc:'bindi'},{shirt:'#f5f0d0',hair:'#999',acc:'mustache'}];
-const HINTS=[{x:100,l:['HIT THE GLOWING','BLOCK FROM BELOW']},{x:23*T,l:['STOMP THEM, OR','USE COFFEE POWER']},{x:192*T,l:['PRINCESS VANSH','IS AHEAD!']}];
+const HINTS=[{x:100,l:['HIT THE GLOWING','BLOCK FROM BELOW']},{x:23*T,l:['STOMP THEM, OR','USE COFFEE POWER']},{x:41*T,l:['TOUCH ONE AND','YOU GO BACK!']},{x:192*T,l:['PRINCESS VANSH','IS AHEAD!']}];
 
 // ---------- state ----------
 let state='title',st=0,cam=0,shake=0,banner=null,parts=[],floats=[],bumps=[],ring=null,coffeeAnim=null,winT=0;
 const P={x:24,y:GY,vx:0,vy:0,w:8,h:20,face:1,ground:false,power:false,inv:0,kb:0,raise:0,cd:0,t:0,walkT:0,hearts:0};
-const E=[26,46,70,96,112,150].map((c,i)=>({x:c*T+6,y:GY,w:10,h:12,dir:-1,alive:true,active:false,phrase:CFG.phrases[i],look:LOOKS[i],dead:0,how:'',t:i}));
+const E=[[26,0],[30],[46,1,1],[66],[70,2],[96,3,1],[112,4],[140],[150,5],[173],[188,-1,1],[194]].map(([c,i=-1,hop=0],n)=>({x:c*T+6,y:GY,vy:0,w:10,h:12,dir:-1,alive:true,active:false,phrase:i>=0?CFG.phrases[i]:'',look:LOOKS[i>=0?i:n%LOOKS.length],hop,hopT:1+n%3*.4,dead:0,how:'',t:n}));
 const keys={left:0,right:0,jump:0},press={jump:0,power:0};
 const setBanner=(l1,l2,c,dur)=>banner={l1,l2,c,dur,t:0};
 const float=(x,y,t,c)=>floats.push({x,y,t,c,l:.9});
@@ -167,8 +168,8 @@ function usePower(){P.raise=.55;P.cd=.8;ring={x:P.x+P.face*2,y:P.y-29,t:0};SFX.p
 function kill(e,how){e.alive=false;e.dead=0;e.how=how;float(e.x,e.y-20,'POOF!','#fff');
   if(how==='power'){burst(e.x,e.y-6,16,['#ffd23f','#fff3a0','#fff'],60,.5);SFX.poof()}else{burst(e.x,e.y-4,8,['#fff','#ddd'],40);SFX.stomp()}}
 function hurtP(e){const d=P.x<e.x?-1:1;P.kb=.25;P.vx=d*120;P.vy=-170;P.inv=1.4;SFX.hurt();
-  if(P.power){P.power=false;$('#pwb').classList.remove('ready');setBanner('COFFEE KHATAM!','HIT A GLOWING BLOCK','#ff8fb1',2.6)}else float(P.x,P.y-28,'OUCH!','#ff8fb1')}
-function respawn(){let x=CHECK[0];for(const c of CHECK)if(c<P.x)x=c;P.x=x;P.y=GY;P.vx=P.vy=0;P.inv=1.5;float(P.x,P.y-28,'OOPS!','#fff');SFX.hurt()}
+  if(P.power){P.power=false;$('#pwb').classList.remove('ready');setBanner('COFFEE KHATAM!','HIT A GLOWING BLOCK','#ff8fb1',2.6)}else{float(P.x,P.y-28,'OUCH!','#ff8fb1');respawn()}}
+function respawn(){let k=CHECK[0];for(const c of CHECK)if(c[0]<P.x)k=c;P.x=k[0];P.y=k[1];P.kb=0;P.vx=P.vy=0;P.inv=1.5;float(P.x,P.y-28,'OOPS!','#fff');SFX.hurt()}
 
 function stepPlayer(dt){
   P.t+=dt;if(P.inv>0)P.inv-=dt;if(P.cd>0)P.cd-=dt;if(P.raise>0)P.raise-=dt;
@@ -186,8 +187,9 @@ function stepPlayer(dt){
 function stepEnemies(dt){for(const e of E){
   if(!e.alive){e.dead+=dt;continue}
   if(!e.active){if(e.x-cam<W+30)e.active=true;else continue}
-  e.t+=dt;const nx=e.x+e.dir*16*dt,fc=Math.floor((nx+e.dir*e.w/2)/T);
-  if(solidAt(fc,Math.floor((e.y-1)/T))||!solidAt(fc,Math.floor((e.y+1)/T)))e.dir*=-1;else e.x=nx;
+  if(e.hop){if(e.y>=GY&&(e.hopT-=dt)<=0){e.vy=-150;e.hopT=1.3}e.vy+=950*dt;e.y=Math.min(GY,e.y+e.vy*dt);if(e.y>=GY)e.vy=0}
+  e.t+=dt;const nx=e.x+e.dir*24*dt,fc=Math.floor((nx+e.dir*e.w/2)/T);
+  if(solidAt(fc,Math.floor((GY-1)/T))||!solidAt(fc,Math.floor((GY+1)/T)))e.dir*=-1;else e.x=nx;
   if(Math.abs(P.x-e.x)<(P.w+e.w)/2&&P.y>e.y-e.h&&P.y-P.h<e.y){
     if(P.vy>0&&P.y-(e.y-e.h)<7){kill(e,'stomp');P.vy=-200}
     else if(P.inv<=0)hurtP(e)}
@@ -303,7 +305,7 @@ function render(){
   for(const p of parts){g.globalAlpha=clamp(p.l/p.m*1.5,0,1);if(p.heart)heartIcon(p.x-cam|0,p.y|0,p.c);else{g.fillStyle=p.c;g.fillRect(p.x-cam|0,p.y|0,1,1)}}g.globalAlpha=1;
   for(const f of floats)txt(f.t,clamp(f.x-cam,f.t.length*4+2,W-f.t.length*4-2),f.y,f.c);
   for(const h of HINTS){const sx=h.x-cam;if(Math.abs(sx-W/2)>55&&!(h.x===100&&cam<5))continue;h.l.forEach((l,i)=>txt(l,clamp(sx,l.length*4+2,W-l.length*4-2),12+i*10,'#fff','center',8,'#1d3b8c'))}
-  if(state==='play')for(const e of E)if(e.alive&&e.active&&Math.abs(e.x-P.x)<110)bubble(wrap(e.phrase),e.x-cam,e.y-14);
+  if(state==='play')for(const e of E)if(e.phrase&&e.alive&&e.active&&Math.abs(e.x-P.x)<110)bubble(wrap(e.phrase),e.x-cam,e.y-14);
   if(Math.abs(VX-P.x)<140)bubble([state==='play'?CFG.vanshHelp:CFG.vanshWin],VX-cam,GY-31);
   g.restore();
   g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,0,W,11);
