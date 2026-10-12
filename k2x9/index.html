@@ -126,15 +126,15 @@ set(102,5,2);set(103,5,2);
 for(let i=0;i<4;i++)for(let r=GR-1-i;r<GR;r++)set(122+i,r,8);
 for(let c=126;c<=127;c++)for(let r=GR-4;r<GR;r++)set(c,r,8);
 for(let i=0;i<4;i++)for(let r=GR-4+i;r<GR;r++)set(130+i,r,8);
-const CHECK=[[24,GY],[33*T,48],[53*T,48],[87*T,48],[127*T,36],[161*T,60],[183*T,60]];
+const CHECK=[[24,GY],[33*T,48],[53*T,48],[87*T,48],[127*T,36],[161*T,60],[171*T+6,GY],[183*T,60]];
 const VX=199*T+6;
 const LOOKS=[{shirt:'#eeeeee',hair:'#111',acc:'tie',tie:'#d22'},{shirt:'#9fd3ff',hair:'#3a2a1a',acc:'tie',tie:'#223'},{shirt:'#ff8a00',hair:'#111',acc:'bindi'},{shirt:'#2a9d5c',hair:'#111',acc:'dupatta'},{shirt:'#9b59b6',hair:'#222',acc:'bindi'},{shirt:'#f5f0d0',hair:'#999',acc:'mustache'}];
 const HINTS=[{x:100,l:['HIT THE GLOWING','BLOCK FROM BELOW']},{x:23*T,l:['STOMP THEM, OR','USE COFFEE POWER']},{x:41*T,l:['TOUCH ONE AND','YOU GO BACK!']},{x:192*T,l:['PRINCESS VANSH','IS AHEAD!']}];
 
 // ---------- state ----------
 let state='title',st=0,cam=0,shake=0,banner=null,parts=[],floats=[],bumps=[],ring=null,coffeeAnim=null,winT=0;
-const P={x:24,y:GY,vx:0,vy:0,w:8,h:20,face:1,ground:false,power:false,inv:0,kb:0,raise:0,cd:0,t:0,walkT:0,hearts:0};
-const E=[[26,0],[30],[46,1,1],[66],[70,2],[96,3,1],[112,4],[140],[150,5],[173],[188,-1,1],[194]].map(([c,i=-1,hop=0],n)=>({x:c*T+6,y:GY,vy:0,w:10,h:12,dir:-1,alive:true,active:false,phrase:i>=0?CFG.phrases[i]:'',look:LOOKS[i>=0?i:n%LOOKS.length],hop,hopT:1+n%3*.4,dead:0,how:'',t:n}));
+const P={x:24,y:GY,vx:0,vy:0,w:8,h:20,face:1,ground:false,power:false,inv:0,kb:0,raise:0,cd:0,t:0,walkT:0,hearts:0,coy:0};
+const E=[[26,0],[30],[46,1,1],[66],[70,2],[96,3,1],[112,4],[140],[150,5],[118],[188,-1,1],[194]].map(([c,i=-1,hop=0],n)=>({x:c*T+6,y:GY,vy:0,w:10,h:12,dir:-1,alive:true,active:false,phrase:i>=0?CFG.phrases[i]:'',look:LOOKS[i>=0?i:n%LOOKS.length],hop,hopT:1+n%3*.4,dead:0,how:'',t:n}));
 const keys={left:0,right:0,jump:0},press={jump:0,power:0};
 const setBanner=(l1,l2,c,dur)=>banner={l1,l2,c,dur,t:0};
 const float=(x,y,t,c)=>floats.push({x,y,t,c,l:.9});
@@ -176,7 +176,8 @@ function stepPlayer(dt){
   const mv=(keys.right?1:0)-(keys.left?1:0);
   if(P.kb>0)P.kb-=dt;else P.vx+=((P.raise>0&&P.ground?0:mv*75)-P.vx)*Math.min(1,dt*14);
   if(mv&&P.kb<=0)P.face=mv;
-  if(press.jump>0&&P.ground){press.jump=0;P.vy=-310;P.ground=false;SFX.jump()}
+  if(P.ground)P.coy=.1;else if(P.coy>0)P.coy-=dt;
+  if(press.jump>0&&(P.ground||P.coy>0)){press.jump=0;P.coy=0;P.vy=-310;P.ground=false;SFX.jump()}
   if(press.power>0){press.power=0;if(P.power){if(P.cd<=0)usePower()}else float(P.x,P.y-30,'NEED COFFEE!','#ffd23f')}
   P.walkT=P.ground&&Math.abs(P.vx)>8?P.walkT+dt:0;
   P.py=P.y;const n=Math.ceil(dt/.008),sd=dt/n;
