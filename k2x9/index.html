@@ -118,14 +118,14 @@ const SFX={
 const map=[];for(let r=0;r<ROWS;r++)map.push(new Array(COLS).fill(0));
 const set=(c,r,v)=>{if(c>=0&&c<COLS&&r>=0&&r<ROWS)map[r][c]=v};
 for(let c=0;c<COLS;c++){set(c,7,1);set(c,8,1)}
-const GAPS=[[58,60],[100,105],[128,130],[168,170],[176,178]];
+const GAPS=[[58,60],[100,105],[128,129],[168,170],[176,178]];
 for(const[a,b]of GAPS)for(let c=a;c<=b;c++){set(c,7,0);set(c,8,0)}
 [[12,2],[13,4],[14,2],[20,3],[38,2],[39,2],[40,3],[41,2],[42,2],[64,3],[76,2],[77,3],[78,4],[79,3],[80,2],[116,3],[118,3],[144,2],[145,4],[146,2],[188,3],[190,3]].forEach(([c,v])=>set(c,4,v));
 set(102,5,2);set(103,5,2);
 [[32,3],[52,3],[86,3],[160,2],[182,2]].forEach(([c,h])=>{for(let r=GR-h;r<GR;r++){set(c,r,6);set(c+1,r,6)}});
 for(let i=0;i<4;i++)for(let r=GR-1-i;r<GR;r++)set(122+i,r,8);
 for(let c=126;c<=127;c++)for(let r=GR-4;r<GR;r++)set(c,r,8);
-for(let i=0;i<4;i++)for(let r=GR-4+i;r<GR;r++)set(131+i,r,8);
+for(let i=0;i<4;i++)for(let r=GR-4+i;r<GR;r++)set(130+i,r,8);
 const CHECK=[[24,GY],[33*T,48],[53*T,48],[87*T,48],[127*T,36],[161*T,60],[183*T,60]];
 const VX=199*T+6;
 const LOOKS=[{shirt:'#eeeeee',hair:'#111',acc:'tie',tie:'#d22'},{shirt:'#9fd3ff',hair:'#3a2a1a',acc:'tie',tie:'#223'},{shirt:'#ff8a00',hair:'#111',acc:'bindi'},{shirt:'#2a9d5c',hair:'#111',acc:'dupatta'},{shirt:'#9b59b6',hair:'#222',acc:'bindi'},{shirt:'#f5f0d0',hair:'#999',acc:'mustache'}];
@@ -168,18 +168,18 @@ function usePower(){P.raise=.55;P.cd=.8;ring={x:P.x+P.face*2,y:P.y-29,t:0};SFX.p
 function kill(e,how){e.alive=false;e.dead=0;e.how=how;float(e.x,e.y-20,'POOF!','#fff');
   if(how==='power'){burst(e.x,e.y-6,16,['#ffd23f','#fff3a0','#fff'],60,.5);SFX.poof()}else{burst(e.x,e.y-4,8,['#fff','#ddd'],40);SFX.stomp()}}
 function hurtP(e){const d=P.x<e.x?-1:1;P.kb=.25;P.vx=d*120;P.vy=-170;P.inv=1.4;SFX.hurt();
-  if(P.power){P.power=false;$('#pwb').classList.remove('ready');setBanner('COFFEE KHATAM!','HIT A GLOWING BLOCK','#ff8fb1',2.6)}else{float(P.x,P.y-28,'OUCH!','#ff8fb1');respawn()}}
+  if(P.power){P.power=false;$('#pwb').classList.remove('ready');const more=map[4].some((v,c)=>v===4&&c*T>P.x);setBanner('COFFEE KHATAM!',more?'HIT A GLOWING BLOCK':'JUMP ON THEM INSTEAD','#ff8fb1',2.6)}else{float(P.x,P.y-28,'OUCH!','#ff8fb1');respawn()}}
 function respawn(){let k=CHECK[0];for(const c of CHECK)if(c[0]<P.x)k=c;P.x=k[0];P.y=k[1];P.kb=0;P.vx=P.vy=0;P.inv=1.5;float(P.x,P.y-28,'OOPS!','#fff');SFX.hurt()}
 
 function stepPlayer(dt){
   P.t+=dt;if(P.inv>0)P.inv-=dt;if(P.cd>0)P.cd-=dt;if(P.raise>0)P.raise-=dt;
   const mv=(keys.right?1:0)-(keys.left?1:0);
-  if(P.kb>0)P.kb-=dt;else P.vx+=((P.raise>0?0:mv*75)-P.vx)*Math.min(1,dt*14);
+  if(P.kb>0)P.kb-=dt;else P.vx+=((P.raise>0&&P.ground?0:mv*75)-P.vx)*Math.min(1,dt*14);
   if(mv&&P.kb<=0)P.face=mv;
   if(press.jump>0&&P.ground){press.jump=0;P.vy=-310;P.ground=false;SFX.jump()}
   if(press.power>0){press.power=0;if(P.power){if(P.cd<=0)usePower()}else float(P.x,P.y-30,'NEED COFFEE!','#ffd23f')}
   P.walkT=P.ground&&Math.abs(P.vx)>8?P.walkT+dt:0;
-  const n=Math.ceil(dt/.008),sd=dt/n;
+  P.py=P.y;const n=Math.ceil(dt/.008),sd=dt/n;
   for(let i=0;i<n;i++){P.vy=Math.min(420,P.vy+950*sd);moveX(P,P.vx*sd);const hd=moveY(P,P.vy*sd);if(hd)bump(hd[0],hd[1])}
   if(P.y>H+40)respawn();
   if(P.power&&Math.random()<dt*8)parts.push({x:P.x+rnd(-7,7),y:P.y-rnd(0,22),vx:0,vy:-20,l:.5,m:.5,c:'#ffd23f'});
@@ -191,13 +191,13 @@ function stepEnemies(dt){for(const e of E){
   e.t+=dt;const nx=e.x+e.dir*24*dt,fc=Math.floor((nx+e.dir*e.w/2)/T);
   if(solidAt(fc,Math.floor((GY-1)/T))||!solidAt(fc,Math.floor((GY+1)/T)))e.dir*=-1;else e.x=nx;
   if(Math.abs(P.x-e.x)<(P.w+e.w)/2&&P.y>e.y-e.h&&P.y-P.h<e.y){
-    if(P.vy>0&&P.y-(e.y-e.h)<7){kill(e,'stomp');P.vy=-200}
+    if(P.vy>0&&Math.min(P.y,P.py)-(e.y-e.h)<7){kill(e,'stomp');P.vy=-200}
     else if(P.inv<=0)hurtP(e)}
 }}
 
 // ---------- flow ----------
 function startGame(){audioInit();$('#title').classList.add('hide');$('#pad').classList.add('on');state='play';st=0}
-function win(){state='win';st=0;P.vx=0;keys.left=keys.right=0;$('#pad').classList.remove('on');SFX.win();setBanner('PRINCESS VANSH','SAVED!','#ffd23f',99);hearts(VX,GY-20,20);try{localStorage.setItem('kb2_won','1')}catch(e){}setTimeout(showClue,3000)}
+function win(){state='win';st=0;P.vx=0;keys.left=keys.right=0;$('#pad').classList.remove('on');SFX.win();setBanner('PRINCESS VANSH SAVED!','','#ffd23f',99);hearts(VX,GY-20,20);try{localStorage.setItem('kb2_won','1')}catch(e){}setTimeout(showClue,3000)}
 function showClue(){state='clue';$('#title').classList.add('hide');$('#clue').classList.remove('hide');startConfetti()}
 $('#start').addEventListener('click',startGame);
 $('#again').addEventListener('click',()=>{audioInit();showClue()});
@@ -212,7 +212,7 @@ function update(dt){
   shake=Math.max(0,shake-dt);
   if(coffeeAnim){coffeeAnim.t+=dt;if(coffeeAnim.t>.7){coffeeAnim=null;gotCoffee()}}
   if(ring){ring.t+=dt;const r=ring.t*170;for(const e of E)if(e.alive&&r<95&&Math.hypot(e.x-ring.x,e.y-6-ring.y)<=r)kill(e,'power');if(ring.t>.6)ring=null}
-  if(state==='play'){stepPlayer(dt);stepEnemies(dt);if(Math.abs(P.x-VX)<14&&P.y>GY-30)win()}
+  if(state==='play'){stepPlayer(dt);stepEnemies(dt);if(P.x>VX-14)win()}
   else if(state==='win'){winT+=dt;P.face=VX>P.x?1:-1;P.t+=dt;if(Math.random()<dt*6)hearts(lerpMid(),GY-28,1);P.vy=Math.min(420,P.vy+950*dt);moveY(P,P.vy*dt)}
   cam+=(clamp(P.x-W*.4,0,LW-W)-cam)*Math.min(1,dt*8);
 }
@@ -295,8 +295,10 @@ function render(){
     heartIcon(cx0+52,10,'#ff4f8a')}
   const c0=Math.max(0,Math.floor(cam/T)),c1=Math.min(COLS-1,c0+Math.ceil(W/T)+1);
   for(let r=0;r<ROWS;r++)for(let c=c0;c<=c1;c++){const v=map[r][c];if(v)tile(v,Math.round(c*T-cam),r*T,c,r)}
-  for(let c=c0;c<=c1;c++)if(map[4][c]===4){const ax=Math.round(c*T+6-cam),ay=4*T-12+Math.round(Math.sin(st*5)*2);g.fillStyle='#000';g.fillRect(ax-3,ay-1,7,3);g.fillRect(ax-2,ay+2,5,2);g.fillRect(ax-1,ay+4,3,2);g.fillStyle='#fff';g.fillRect(ax-2,ay,5,2);g.fillRect(ax-1,ay+2,3,2);g.fillRect(ax,ay+4,1,1)}
+  for(let c=c0;c<=c1;c++)if(map[4][c]===4){const ax=Math.round(c*T+6-cam),ay=5*T+4+Math.round(Math.sin(st*5)*2);g.fillStyle='#000';g.fillRect(ax-1,ay-1,3,3);g.fillRect(ax-2,ay+1,5,2);g.fillRect(ax-3,ay+3,7,3);g.fillStyle='#fff';g.fillRect(ax,ay,1,1);g.fillRect(ax-1,ay+1,3,2);g.fillRect(ax-2,ay+3,5,2)}
   if(coffeeAnim){const k=coffeeAnim.t/.7;cupIcon(Math.round(lerp(coffeeAnim.x-5,P.x-5,k*k)-cam),Math.round(lerp(coffeeAnim.y-10,P.y-22,k*k)-Math.sin(k*Math.PI)*14))}
+  if(state==='play'){let ne=null;for(const e of E)if(e.phrase&&e.alive&&e.active&&Math.abs(e.x-P.x)<110&&(!ne||Math.abs(e.x-P.x)<Math.abs(ne.x-P.x)))ne=e;if(ne)bubble(wrap(ne.phrase),ne.x-cam,ne.y-14)}
+  for(let c=c0;c<=c1;c++)if(map[4][c]===4)tile(4,Math.round(c*T-cam),4*T,c,4);
   drawVansh();
   for(const e of E)drawEnemy(e);
   drawKhushi();
@@ -304,8 +306,7 @@ function render(){
     g.strokeStyle='#ffd23f';g.lineWidth=2;g.beginPath();g.arc(x,ring.y,r,0,7);g.stroke();for(let i=0;i<10;i++){const an=i*.628+ring.t*3;g.beginPath();g.moveTo(x+Math.cos(an)*4,ring.y+Math.sin(an)*4);g.lineTo(x+Math.cos(an)*r*.7,ring.y+Math.sin(an)*r*.7);g.stroke()}g.globalAlpha=1}
   for(const p of parts){g.globalAlpha=clamp(p.l/p.m*1.5,0,1);if(p.heart)heartIcon(p.x-cam|0,p.y|0,p.c);else{g.fillStyle=p.c;g.fillRect(p.x-cam|0,p.y|0,1,1)}}g.globalAlpha=1;
   for(const f of floats)txt(f.t,clamp(f.x-cam,f.t.length*4+2,W-f.t.length*4-2),f.y,f.c);
-  for(const h of HINTS){const sx=h.x-cam;if(Math.abs(sx-W/2)>55&&!(h.x===100&&cam<5))continue;h.l.forEach((l,i)=>txt(l,clamp(sx,l.length*4+2,W-l.length*4-2),12+i*10,'#fff','center',8,'#1d3b8c'))}
-  if(state==='play')for(const e of E)if(e.phrase&&e.alive&&e.active&&Math.abs(e.x-P.x)<110)bubble(wrap(e.phrase),e.x-cam,e.y-14);
+  if(!banner)for(const h of HINTS){const sx=h.x-cam;if(Math.abs(sx-W/2)>55&&!(h.x===100&&cam<5))continue;h.l.forEach((l,i)=>txt(l,clamp(sx,l.length*4+2,W-l.length*4-2),12+i*10,'#fff','center',8,'#1d3b8c'))}
   if(Math.abs(VX-P.x)<140)bubble([state==='play'?CFG.vanshHelp:CFG.vanshWin],VX-cam,GY-31);
   g.restore();
   g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,0,W,11);
